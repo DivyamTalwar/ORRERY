@@ -15,16 +15,16 @@ updates:
         patterns:
           - "*"
 
-  # Build-time only. The published plugin has no runtime dependencies.
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "build"
-    groups:
-      dev-dependencies:
-        dependency-type: development
-        patterns:
-          - "*"
+  # NOTE: the npm ecosystem is deliberately NOT enabled here.
+  #
+  # Dependabot cannot update bun.lock. It rewrites package.json and leaves the
+  # lockfile untouched, so `bun install --frozen-lockfile` in CI fails with
+  # "lockfile had changes, but lockfile is frozen" and the pull request can never
+  # go green. A permanently red bot PR is worse than no bot PR: it teaches
+  # everyone to ignore a red check on a repository whose whole point is that the
+  # gates mean something.
+  #
+  # Dependabot *security alerts* are configured separately at the repository level
+  # and still cover package.json, so a vulnerable dev dependency is still
+  # reported. The two dev dependencies here are bumped by hand with
+  # `bun update <pkg>`, which regenerates the lockfile.
