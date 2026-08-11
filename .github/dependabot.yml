@@ -1,0 +1,30 @@
+version: 2
+
+updates:
+  # The release workflow signs artifacts and issues provenance, so a stale or
+  # compromised action is a supply-chain risk in its own right.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "build"
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # Build-time only. The published plugin has no runtime dependencies.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "build"
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        patterns:
+          - "*"
