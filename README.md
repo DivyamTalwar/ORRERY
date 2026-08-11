@@ -7,7 +7,8 @@
 **Architect-first orchestration for coding agents.**
 Exact model pinning. Consented writes. Fail-closed, always.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/DivyamTalwar/ORRERY/actions/workflows/ci.yml/badge.svg)](https://github.com/DivyamTalwar/ORRERY/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg?style=flat-square)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-2026--07--28-black?style=flat-square)](https://modelcontextprotocol.io)
 [![Runtime](https://img.shields.io/badge/runtime-Bun-black?style=flat-square)](https://bun.sh)
 [![Dependencies](https://img.shields.io/badge/runtime%20dependencies-0-black?style=flat-square)](#zero-dependencies)
@@ -85,11 +86,12 @@ Everything else is built on top of that.
 |---|---|
 | **Derived destinations** | Computed from client + scope + workspace. The write set is exactly three known paths, always. |
 | **Allowlisted writes** | Every destination is re-checked against the workspace root (project scope) or the real home directory (user scope), and refused if any path component is a symlink. |
-| **Exact consent** | A preview mints a **single-use token** bound to a digest of the planned content *and* the observed on-disk state. If anything changed since the preview, install refuses. Tokens expire in 10 minutes and do not survive a restart. |
-| **Second consent for user scope** | A separate `INSTALL USER <nonce>` token bound to the same preview. A generic "yes" is never accepted. |
+| **Exact plans** | A preview mints a single-use token bound to a digest of the planned content *and* the observed on-disk state. If anything changed since the preview, install refuses. Tokens expire in 10 minutes and do not survive a restart. |
+| **Second token for user scope** | A separate `INSTALL USER <nonce>` carrying an independent nonce, so it cannot be derived from the install token. A generic "yes" is never accepted. |
 | **No silent clobbering** | An unmanaged file at a destination is refused outright. A managed file must still hash to its recorded value, and is quarantined — not deleted — with a device/inode identity check before replacement. |
-| **Crash-safe transactions** | A fsynced write-ahead journal supports roll-forward and rollback. Rollback **refuses rather than overwrites** anything unexpected. Recovery re-derives the legal target set from the live profile, so a forged journal cannot redirect it. |
-| **Serialized mutations** | An exclusive lock over the plugin data directory, published atomically via `link(2)` and reclaimed only through an atomic `rename(2)` claim, so two clients sharing one data directory cannot interleave. |
+| **Crash-safe transactions** | A fsynced write-ahead journal records intent before publishing a link. Rollback is driven by that record, never by comparing content hashes, so an idempotent re-install cannot make it delete a file the transaction never wrote. |
+| **Serialized mutations** | An exclusive lock over the plugin data directory. Acquisition is a plain exclusive create, so a live lock is never lifted; the only removal happens while holding a separate reclaim ticket, so at most one process is ever between removing a stale lock and creating its own. |
+| **Scoped recovery** | Crash recovery deletes and renames files, so it runs only inside a tool that already declares destructive intent. Every other tool reports `pendingRecovery` instead. |
 | **No credentials, ever** | Input is recursively scanned; any key matching `secret`, `token`, `password`, `api key`, `credential`, or `private key` is rejected. |
 | **No injection into role files** | Carriage returns, newlines and NUL bytes are rejected in every string input, so no value can smuggle extra TOML keys or YAML frontmatter into a generated agent file. |
 | **No unenforceable claims** | A client that cannot bind per-agent reasoning effort is **refused** when asked to store one, rather than persisting a comfortable lie. |
@@ -107,7 +109,7 @@ Orrery implements it.
 - Setup records the digest you approved.
 - Any later mismatch reports status **`tools-changed`** and **blocks every stateful operation** until a human re-approves.
 
-Call `get_setup_status` at any time and compare `toolsDigest` against `approvedToolsDigest`. If they differ, something moved — and nothing will happen until you say so.
+Call `get_setup_status` at any time and compare `toolsDigest` against `approvedToolsDigest`. If they differ, something moved.
 
 ---
 
@@ -124,14 +126,16 @@ Orrery states exactly what each host can and cannot enforce, and refuses to stor
 | **GitHub Copilot** | `.github/agents/*.agent.md` | `~/.copilot/agents/*.agent.md` | `prompt-only` | no |
 | **Kiro** | `.kiro/agents/*.md` | `~/.kiro/agents/*.md` | `prompt-only` | no |
 
-**Read the read-only column carefully — this is the part most tools lie about.**
+**Read the read-only column carefully — this is the part most tools overstate.**
 
 - `os-sandbox` — a read-only sandbox is *requested*. Only the **observed** sandbox policy proves isolation.
 - `tool-allowlist` — the advisor is restricted to read tools. Real enforcement, but not an OS boundary.
 - `frontmatter-flag` — a declared flag whose behaviour must be observed.
 - `prompt-only` — a behavioural request with no enforcement at all.
 
-Orrery reports the mechanism as `readOnlyMechanism` at preview time and will not describe any of them as stronger than they are.
+`render_client_adapter` reports the mechanism as `readOnlyMechanism` and the exact native role identifiers as `roleIds`.
+
+ChatGPT Work web, Kiro web/mobile, and skills-only surfaces are not native client profiles and cannot be saved through `save_preferences`. Use parent-chat prompt guidance only; role binding is not enforceable there.
 
 ---
 
@@ -143,28 +147,53 @@ A short list, because it matters more than the feature list:
 - It will **not** claim a guarantee it cannot observe. If your client silently substitutes a model, Orrery never chose that — and says so plainly rather than pretending the pin held.
 - It will **not** treat manifest conformance as evidence of runtime behaviour.
 - It will **not** pretend the orchestration prompt layer is enforced. The MCP server enforces the *file-write* contract. It cannot enforce that a model genuinely read a diff.
+- It will **not** claim a consent token proves a human saw the preview. The token makes a write *exact* and *stale-proof*, but it is handed back to the caller, so an unsupervised agent can chain preview into install on its own. The install and uninstall tools are annotated `destructiveHint: true` so your host prompts for them, and **that prompt is the human-in-the-loop control**.
 
 ---
 
 ## Quick start
 
-**Requirements:** [Bun](https://bun.sh) on your client's PATH, and a compatible Agent Plugins v1 client.
+**Requirements:** [Bun](https://bun.sh) on your client's PATH, a compatible Agent Plugins v1 client, and an absolute, existing, private `${PLUGIN_DATA}` directory supplied by the host.
 
-Install the plugin through your client's plugin UI or local package mechanism, then simply ask for orchestration. Setup is **lazy** — nothing runs at install time, no hook is registered, and no file is written until you have seen an exact preview and repeated an exact token.
+Setup is **lazy** — installing the plugin runs no interview, registers no hook, and writes no file. Nothing is written until you have seen an exact preview and repeated an exact token.
 
-```text
-Use Orrery to build this feature, verify it, and get the advisor verdict before reporting done.
+### Codex
+
+```sh
+codex plugin marketplace add DivyamTalwar/ORRERY --ref main
+codex plugin add orrery@orrery
 ```
 
-On first use, the setup interview runs **in your main chat**, one question at a time:
+Start a new chat, then request orchestration:
 
-1. Which client and scope (project or user)
-2. The workspace directory that keys this profile
-3. The **exact** native model IDs, copied from your client's model picker — never guessed
-4. Reasoning effort, where the host actually binds it
-5. Confirmation of the advisor's read-only mechanism for your client
+```text
+Use $orrery:orchestration to build this feature, verify it, and obtain the configured advisor review before reporting done.
+```
 
-Then you get a full preview: every destination, every byte of content, every warning, and a one-time token. Nothing is written until you repeat that token exactly.
+Update an existing installation with `codex plugin marketplace upgrade orrery`.
+
+### Cursor
+
+Cursor 3.15.6 rejects a symlinked local plugin and cannot resolve the portable bare `bun` command from its plugin MCP process. Both are host defects, so the canonical package is not bent around them. Use the guarded compatibility bridge instead — see **[docs/cursor-local-install.md](docs/cursor-local-install.md)**.
+
+### Other clients
+
+Install `plugins/orrery` as the plugin root through that client's documented Agent Plugins v1 UI or local package mechanism. Orrery does not claim a universal install command.
+
+After any adapter install, update, or uninstall, start a new chat or reload the client so native role discovery observes the new state.
+
+### First-use interview
+
+The interview stays in your main chat and asks one question at a time: client, scope, workspace, and three **exact** native model IDs copied from your client's picker or `/model`.
+
+| Role | Purpose | Current Codex recommendation |
+|---|---|---|
+| Routine implementer | Bounded, mechanical, fully specified work | `gpt-5.6-terra`, `high` |
+| High-complexity implementer | Security, concurrency, algorithms, hard debugging, migrations, wide refactors | `gpt-5.6-terra`, `high` |
+| Advisor | Commitment review and final diff/evidence verdict; requested read-only | `gpt-5.6-sol`, `high` |
+| Orchestrator | Parent ownership and verification | `inherit` |
+
+These are editable recommendations, not a universal model catalogue. Orrery never guesses, normalises, silently falls back, or claims a model exists in another client.
 
 ---
 
@@ -184,6 +213,74 @@ Eight tools over newline-delimited JSON-RPC 2.0. Every one declares a JSON Schem
 | `reset_configuration` | | ● |
 
 Protocol revisions `2026-07-28`, `2025-06-18` and `2025-03-26` are negotiated. Under the `2026-07-28` stateless core a request needs no `initialize` handshake — it may carry its own protocol version in `_meta`, and list results carry `ttlMs` and `cacheScope`. An explicitly declared but unsupported revision is **refused**, never silently downgraded.
+
+Configuration is schema-versioned and written atomically. Secret-like fields are rejected recursively; model IDs and effort values cannot contain control characters.
+
+---
+
+## Preview, consent, reconfigure, and uninstall
+
+`render_client_adapter` returns exact destinations, full contents, a SHA-256 plan digest, target-state hashes, host warnings, and a short-lived one-time confirmation token. It computes destinations from an existing workspace and the selected client and scope; the parent never hands the server an arbitrary destination path. User scope requires a second exact token.
+
+Installation rejects traversal, symlink ancestors and targets, unmanaged conflicts, drifted managed files, expired or replayed consent, and target changes since preview. Managed files carry the exact `orrery-managed:v1` marker and are recorded with hashes. Updates create private backups.
+
+Reconfiguration repeats the interview and preview:
+
+```text
+Use $orrery:setup to reconfigure my Orrery client, scope, workspace, and exact native role choices.
+```
+
+Adapter uninstall previews the current profile's managed files and its confirmation token, then removes only unchanged managed files. It does **not** uninstall the plugin package. `reset_configuration` requires its own exact token, is refused while managed files are installed, and is refused while the tool surface is unapproved so it cannot erase an unreviewed alarm.
+
+---
+
+## Orchestration semantics
+
+The parent owns the specification, architecture, decomposition, actual diff review, rerun verification, correction loops, and acceptance. Routine versus high routing is based on task complexity, never price alone. Worker reports are claims until the parent verifies the working tree and checks. The advisor remains behaviorally read-only unless the client exposes evidence of OS-enforced isolation; Orrery reports the observed guarantee rather than inventing one.
+
+The historical exact Codex native lane remains compatible: separately installed Terra / High implementation and a fresh Sol / High reviewer. It does not use a Luna custom-agent TOML. The Luna lane instead uses app task tools and is outside native subagent V2.
+
+| Mode | Worker | Parent ownership |
+|---|---|---|
+| Native lane | Saved routine/high role, then saved advisor role | Architecture, diff/check verification, corrections, acceptance |
+| Luna task (explicit opt-in) | User-visible `gpt-5.6-luna` / Max task | Monitoring, diff review, corrections, PR authorization, dependent ordering |
+
+Use the Luna task lane only with current-request authorization such as: **“Use the Luna task lane for this feature.”** It requires `list_projects`, `list_threads`, `create_thread`, `wait_threads`, `read_thread`, and `send_message_to_thread`. A pending `clientThreadId` is a setup handle, not a ready task ID. Missing tools, Luna, or Max stop without fallback. The native lane remains the default for the exact retained Codex compatibility workflow and does not use a Luna companion file.
+
+### Requirements common to both modes
+
+- Bun available for portable MCP runtime.
+- A compatible plugin client and exact user-selected model access.
+- Parent ownership of verification and acceptance.
+
+### Additional native-mode requirements
+
+- Codex native custom-agent support and the separately installed exact roles.
+- Observable runtime routing; no unverified model/effort claim.
+- `jq` for the retained companion lookup/install script.
+
+### Additional Luna task-mode requirements
+
+- Explicit authorization in the current request.
+- Luna / Max availability and all six app task tools.
+
+The native companion installation can be skipped for Luna-only use. Luna tasks do not require native subagents, Terra access, or companion TOML files. Luna-only users do not need to run `scripts/install-agents.sh`.
+
+### Retained Codex companion lane
+
+For exact legacy-compatible native use:
+
+```sh
+plugin_dir="$(codex plugin list --json | jq -r '.installed[] | select(.pluginId == "orrery@orrery") | .source.path')"
+sh "$plugin_dir/scripts/install-agents.sh"
+sh "$plugin_dir/scripts/install-agents.sh" --check
+```
+
+Start a fresh task afterward. The installer refuses conflicting or symlinked files and retains the byte-exact v0.2.0 migration. Runtime routing may be inspected with:
+
+```sh
+sh "$plugin_dir/scripts/inspect-agent-runtime.sh" <native-subagent-thread-id>
+```
 
 ---
 
@@ -206,15 +303,33 @@ cosign verify-blob orrery-*.tar.gz \
 
 ## Development
 
+Running the full gate additionally needs `jq` and Python 3.11 or newer: the packaging
+verification script parses the role templates with `tomllib`, which is 3.11+ only. The
+plugin itself needs neither at runtime.
+
 ```sh
 bun install --frozen-lockfile
 bun run typecheck     # strict TypeScript, checked index access
 bun run test
 bun run validate      # manifests, skills, links, pinned schemas, pinned tool surface
+bun run sbom
 bun run ci            # everything, plus the packaged-artifact end-to-end check
 ```
 
 `bun run ci` builds a flattened archive, extracts it, **starts the extracted MCP server** with an isolated HOME and data directory, drives a full save → preview → install → uninstall cycle against it, and asserts the packaged artifact exposes exactly the pinned tool surface. The thing that ships is the thing that is tested.
+
+### Renaming or forking
+
+Several values are *derived* from the product name, including the pinned tool-surface digest and the byte-exact legacy migration fingerprints. A manual find-and-replace will silently break them, so use the guarded tool, which recomputes every derived digest and prints a dry run first:
+
+```sh
+bun run rebrand -- --name my-advisor --display "My Advisor" \
+  --author-name "Your Name" --repo https://github.com/you/my-advisor
+bun run rebrand -- ... --apply
+bun run ci
+```
+
+Uninstall any managed adapter files with the previous build before renaming: the managed marker changes with the name, so a renamed build will not recognise the old files.
 
 ---
 
@@ -227,6 +342,10 @@ Two things make it the right name. The mechanism it models is transparent by con
 Auditability is not a feature here. It is the whole machine.
 
 ---
+
+## Security
+
+Found a vulnerability? See **[SECURITY.md](SECURITY.md)** for the threat model, the enforced-versus-unguaranteed split, and private reporting.
 
 ## License
 
