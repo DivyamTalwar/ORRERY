@@ -1,0 +1,22 @@
+{
+  "name": "orrery-validation",
+  "version": "0.6.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "validate": "bun tools/validate.ts validate",
+    "sbom": "bun tools/sbom.ts",
+    "rebrand": "bun tools/rebrand.ts",
+    "release": "bun tools/validate.ts release",
+    "release:check": "bun tools/validate.ts release-check",
+    "ci": "sh plugins/orrery/scripts/verify.sh && bun run typecheck && bun run test && bun run validate && bun run sbom && bun run release:check",
+    "tag:check": "bun tools/validate.ts tag-check",
+    "cursor:local": "bun tools/cursor-local.ts",
+    "test": "bun test plugins/orrery/mcp/server.test.ts tools/cursor-local.test.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.5",
+    "typescript": "5.9.2"
+  }
+}

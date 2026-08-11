@@ -1,0 +1,20 @@
+{
+  "name": "orrery",
+  "interface": {
+    "displayName": "Orrery"
+  },
+  "plugins": [
+    {
+      "name": "orrery",
+      "source": {
+        "source": "local",
+        "path": "./plugins/orrery"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

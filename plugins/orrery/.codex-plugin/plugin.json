@@ -1,0 +1,35 @@
+{
+  "name": "orrery",
+  "version": "0.6.0",
+  "description": "Configurable architect workflow that inherits the parent model, supports exact native roles, preserves explicit opt-in GPT-5.6 Luna app tasks through Codex app task tools, and retains fresh Sol review compatibility.",
+  "author": {
+    "name": "Divyam Talwar",
+    "url": "https://github.com/DivyamTalwar"
+  },
+  "homepage": "https://github.com/DivyamTalwar/ORRERY#readme",
+  "repository": "https://github.com/DivyamTalwar/ORRERY",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "orchestration",
+    "multi-agent",
+    "gpt-5.6"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Orrery",
+    "shortDescription": "Inherit the parent model, configure exact native roles, or explicitly opt into Luna tasks.",
+    "longDescription": "Orrery runs lazy parent-chat setup, stores non-secret exact role preferences, safely previews and installs Codex-native adapters, and preserves the explicit opt-in GPT-5.6 Luna / Max app-task lane through Codex app task tools. The parent owns architecture, diff verification, correction loops, and acceptance; the retained native compatibility lane uses Terra / High plus a fresh Sol review. The opt-in lane uses list_projects, list_threads, create_thread, wait_threads, read_thread, and send_message_to_thread.",
+    "developerName": "Divyam Talwar",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/DivyamTalwar/ORRERY",
+    "defaultPrompt": [
+      "Use Orrery's native lane to build this feature, verify it, and obtain the fresh Sol review before completion.",
+      "Use the Luna task lane only when I explicitly authorize it; create user-visible GPT-5.6 Luna / Max tasks through Codex app task tools and keep primary review and acceptance in this task."
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "orrery",
+  "version": "0.6.0",
+  "description": "Configurable cross-client architect orchestration with lazy setup, exact user-selected native roles, content-addressed tool-surface consent, transactional adapter installation, and a separate explicit Codex Luna app-task lane.",
+  "author": {
+    "name": "Divyam Talwar",
+    "url": "https://github.com/DivyamTalwar"
+  },
+  "homepage": "https://github.com/DivyamTalwar/ORRERY#readme",
+  "repository": "https://github.com/DivyamTalwar/ORRERY",
+  "license": "MIT",
+  "keywords": [
+    "agent-plugin",
+    "orchestration",
+    "architecture",
+    "cross-client",
+    "mcp"
+  ]
+}

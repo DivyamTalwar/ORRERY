@@ -1,0 +1,12 @@
+.DS_Store
+*.log
+__pycache__/
+
+dist/
+node_modules/
+
+# local agent tooling state
+.omx/
+
+# local Cursor bridge state written by the documented smoke test
+.cursor/
