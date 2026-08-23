@@ -11,7 +11,7 @@ bun install --frozen-lockfile
 bun run ci
 ```
 
-The full gate validates the packaged archive, strict TypeScript, tests, manifests, SBOM, and release invariants. Platform compatibility tests also run on Linux, macOS, and Windows in GitHub Actions.
+The full gate validates the packaged archive, strict TypeScript, tests, manifests, SBOM, and release invariants. Runtime compatibility tests also run on Linux and macOS in GitHub Actions. Windows remains renderer-tested but is not yet runtime-tested because POSIX permission-bit guarantees require a native ACL implementation.
 
 ## Pull requests
 
