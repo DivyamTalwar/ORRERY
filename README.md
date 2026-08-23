@@ -322,6 +322,8 @@ bun run ci            # everything, plus the packaged-artifact end-to-end check
 
 Contributor workflow and trust-boundary rules are documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+Run `bun run doctor -- --workspace /absolute/project` for a non-mutating, machine-readable compatibility report across all supported clients. The report inspects derived adapter paths and managed markers while explicitly separating those observations from live-host claims it cannot prove.
+
 ### Renaming or forking
 
 Several values are *derived* from the product name, including the pinned tool-surface digest and the byte-exact legacy migration fingerprints. A manual find-and-replace will silently break them, so use the guarded tool, which recomputes every derived digest and prints a dry run first:
