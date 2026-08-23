@@ -18,3 +18,13 @@ Only the first two are continuously enforced today. An adapter file is a request
 | Kiro | Yes | Linux, macOS | Not yet automated | Effort is a session/model setting, not a per-agent binding. |
 
 The roadmap is to replace “not yet automated” cells with versioned, machine-readable doctor receipts. Until then, the table intentionally avoids implying end-to-end enforcement.
+
+## Compatibility Doctor
+
+Inspect all six project-scope adapter destinations without writing anything:
+
+```bash
+bun run doctor -- --workspace /absolute/path/to/project
+```
+
+Narrow the report with `--client codex`, `--client claude-code`, or another supported client. The versioned JSON report distinguishes managed, missing, and unsafe files; reports the renderer's effort/read-only capabilities; and lists every claim it cannot observe. It deliberately does **not** call a missing adapter “broken” or a static role file “proof” of live model, effort, sandbox, or advisor behavior.
