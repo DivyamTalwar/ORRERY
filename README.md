@@ -23,6 +23,8 @@ Orrery keeps **you** the architect.
 
 Your main chat owns the requirements, the architecture, the decomposition, the diff review and the acceptance. It delegates implementation to three roles you pin yourself — a routine implementer, a high-complexity implementer, and a **read-only advisor** that returns exactly `ship`, `fix-first`, or `rethink`. Worker reports are treated as *claims* until you verify them.
 
+The same rule applies to client adapters: rendered files express requested model, effort, and read-only behavior, but only a live host observation can prove that a client honored them. See the [compatibility evidence matrix](docs/compatibility.md).
+
 An orrery is a clockwork model of the solar system: every body driven in exact, inspectable relation, nothing drifting on its own. That is the contract.
 
 ---
@@ -317,6 +319,8 @@ bun run ci            # everything, plus the packaged-artifact end-to-end check
 ```
 
 `bun run ci` builds a flattened archive, extracts it, **starts the extracted MCP server** with an isolated HOME and data directory, drives a full save → preview → install → uninstall cycle against it, and asserts the packaged artifact exposes exactly the pinned tool surface. The thing that ships is the thing that is tested.
+
+Contributor workflow and trust-boundary rules are documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Renaming or forking
 
