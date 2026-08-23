@@ -17,7 +17,7 @@
  *   5. The exposed tool surface is content-addressed. If it changes, previously granted
  *      consent is void until the operator re-approves (rug-pull defence).
  */
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {
   chmodSync,
   closeSync,
@@ -37,6 +37,8 @@ import {
 } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { canonicalJson, sha256 as sha } from "./integrity";
+import { compileToolPolicy } from "./tool-registry";
 
 // ---------------------------------------------------------------------------
 // Identity and protocol constants
@@ -250,19 +252,7 @@ type Manifest = { schemaVersion: 1; files: ManagedFile[]; updatedAt: string };
 // Small utilities
 // ---------------------------------------------------------------------------
 
-function sha(text: string | Uint8Array): string {
-  return createHash("sha256").update(text).digest("hex");
-}
-
-/** Deterministic JSON with recursively sorted keys, so digests are stable. */
-export function canonicalJson(value: unknown): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  const entries = Object.entries(value as Record<string, unknown>)
-    .filter(([, item]) => item !== undefined)
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`).join(",")}}`;
-}
+export { canonicalJson } from "./integrity";
 
 function syncFile(path: string): void {
   const fd = openSync(path, "r");
@@ -2180,30 +2170,16 @@ export const tools = [
  * any later mismatch reports `tools-changed` and blocks every stateful operation until
  * a human re-approves. This is the documented mitigation for MCP rug-pull attacks.
  */
-export const TOOLS_DIGEST = sha(canonicalJson(tools));
-
-const READ_ONLY_TOOLS = new Set(
-  tools.filter((tool) => tool.annotations.readOnlyHint).map((tool) => tool.name as string),
-);
-
-/**
- * A Map, not a plain object: bracket lookup on an object literal also resolves inherited
- * `Object.prototype` members, so a tool named `toString` or `constructor` would slip past
- * the unknown-tool check and reach dispatch with an unvalidated argument set.
- */
-const TOOL_ARGUMENT_ALLOWLIST = new Map<string, readonly string[]>([
-  ["get_setup_status", []],
-  ["get_preferences", []],
-  ["save_preferences", ["client", "scope", "workspace", "orchestrator", "roles", "appTaskLane"]],
-  ["render_client_adapter", ["workspace"]],
-  ["install_client_adapter", ["workspace", "confirmationToken", "userScopeConfirmationToken"]],
-  ["uninstall_client_adapter", ["confirmationToken"]],
-  ["validate_configuration", ["workspace"]],
-  ["reset_configuration", ["confirmationToken"]],
+const TOOL_POLICY = compileToolPolicy(tools, [
+  "install_client_adapter",
+  "uninstall_client_adapter",
+  "reset_configuration",
 ]);
-
+export const TOOLS_DIGEST = TOOL_POLICY.digest;
+const READ_ONLY_TOOLS = TOOL_POLICY.readOnly;
+const TOOL_ARGUMENT_ALLOWLIST = TOOL_POLICY.argumentsByTool;
 /** Tools permitted to perform crash recovery, which deletes and renames managed files. */
-const RECOVERY_TOOLS = new Set(["install_client_adapter", "uninstall_client_adapter", "reset_configuration"]);
+const RECOVERY_TOOLS = TOOL_POLICY.recovery;
 
 // ---------------------------------------------------------------------------
 // Tool dispatch
