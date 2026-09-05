@@ -50,7 +50,7 @@ Ask one focused question at a time:
 Offer these current Codex recommendations as editable defaults, not universal IDs:
 
 - routine: `gpt-5.6-terra`, effort `high`
-- high: `gpt-5.6-terra`, effort `high`
+- high: `gpt-6-astra`, effort `xhigh`
 - advisor: `gpt-5.6-sol`, effort `high`, requested read-only
 - orchestrator: always `inherit`; recommend selecting Sol / High in the main chat
 
