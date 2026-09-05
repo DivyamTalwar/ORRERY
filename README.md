@@ -62,6 +62,8 @@ The parent is the centre they orbit. It inherits *your* model and reasoning effo
 
 Routing is enforced at acceptance, not merely requested. If the parent selects Astra and observes Terra, that is a substituted worker and the lane stops — even when the work looks correct — because the selection was made on stated evidence, and quietly serving it from the other lane discards the decision instead of executing it.
 
+![Four bodies orbiting one parent: Astra pinned to gpt-6-astra at xhigh and Terra pinned to gpt-5.6-terra at high are alternatives, one chosen per delegation; Sol at gpt-5.6-sol high runs the read-only review; Luna at gpt-5.6-luna max is the explicit opt-in app-task lane; the parent inherits your model and keeps routing, verification and acceptance](docs/images/constellation.png)
+
 ---
 
 ## The problem
@@ -117,6 +119,8 @@ There is a trap in the question "how do all four models work together", and it i
 - **Native lane ⊕ Luna lane** — mutually exclusive. Luna is opt-in only and is never a fallback.
 
 The most that is ever live in a single run is three bodies, and only when the parent is Sol.
+
+![One delegation end to end: you hand in a goal, the parent inherits your model, the setup gate and preflight can each stop the run, the route picks exactly one of Terra at high or Astra at xhigh, the routing proof stops on a mismatched worker, the parent inspects the diff and re-runs the checks itself, a read-only Sol review returns ship, fix-first or rethink, and fix-first loops back to implementation](docs/images/flow.png)
 
 ### The native lane
 
@@ -316,6 +320,8 @@ A short list, because it matters more than the feature list:
 - It will **not** treat manifest conformance as evidence of runtime behaviour.
 - It will **not** pretend the orchestration prompt layer is enforced. The MCP server enforces the *file-write* contract. It cannot enforce that a model genuinely read a diff.
 - It will **not** claim a consent token proves a human saw the preview. The token makes a write *exact* and *stale-proof*, but it is handed back to the caller, so an unsupervised agent can chain preview into install on its own. The install and uninstall tools are annotated `destructiveHint: true` so your host prompts for them, and **that prompt is the human-in-the-loop control**.
+
+![The same install command run twice: one run installs Astra, Sol and Terra and reports INSTALL PASSED with no legacy Luna file remaining; the other stops with ERROR, Astra destination is conflict and will not be replaced, and exits 1 having overwritten nothing and left nothing half-written](docs/images/refusal.png)
 
 ---
 
