@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "orrery",
   "version": "0.6.0",
-  "description": "Configurable cross-client architect orchestration with lazy setup, exact user-selected native roles, content-addressed tool-surface consent, transactional adapter installation, and a separate explicit Codex Luna app-task lane.",
+  "description": "Configurable cross-client architect orchestration with lazy setup, exact user-selected native roles, risk-routed Astra and Terra implementation lanes, content-addressed tool-surface consent, transactional adapter installation, and a separate explicit Codex Luna app-task lane.",
   "author": {
     "name": "Divyam Talwar",
     "url": "https://github.com/DivyamTalwar"
