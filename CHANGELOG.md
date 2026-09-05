@@ -3,7 +3,7 @@
 All notable changes to Orrery are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and Semantic Versioning.
 
-## [Unreleased]
+## [0.7.0] - 2026-09-05
 
 ### Added
 
@@ -16,6 +16,16 @@ All notable changes to Orrery are documented here. This project follows
   toward Astra, and what to do when a route turns out to be wrong.
 - A `verify.sh` regression test that seeds a real v0.6.0 install, upgrades it, and
   asserts Terra migrated, Astra was added, Sol was untouched, and `--check` passes.
+- **A capability planner** (`bun run plan`). Given the guarantees you require, it
+  reports which hosts can actually bind them and refuses the ones that would silently
+  weaken requested effort or advisor isolation. A path-only portability matrix would
+  report every client as working; this names the ones that would quietly downgrade the
+  contract.
+- **An explainable tool-surface review** (`bun run tools:review`). `TOOLS_DIGEST`
+  reports that the surface moved; this reports *what* moved and whether it is
+  permission-bearing — added arguments, newly stateful tools, or a dropped
+  `readOnlyHint`. The reviewed baseline lives in `tools/schema/tools.policy.json` and
+  is asserted by `validate`, so it cannot drift away from the digest it explains.
 
 ### Changed
 
@@ -31,6 +41,15 @@ All notable changes to Orrery are documented here. This project follows
 - The installer accepts a set of superseded template digests rather than a single
   one, so both the v0.2.0 and v0.6.0 Terra files migrate instead of being refused as
   conflicts.
+- **The compatibility doctor is now semantic** (report `schema: 2`). It parses native
+  role ids, requested models and effort, and advisor controls, rather than checking for
+  a managed marker, so a marker-only or weakened adapter file is no longer reported as
+  healthy. Observed declarations remain explicitly separated from live-host behaviour
+  it cannot prove.
+- `typescript` 5.9.2 to 7.0.2 and `@types/bun` 1.3.5 to 1.4.1. The compiler is a major
+  version move and required no source changes. Applied by hand with a regenerated
+  lockfile, because Dependabot cannot update `bun.lock` and its npm pull requests can
+  never satisfy `bun install --frozen-lockfile`.
 
 ### Fixed
 
