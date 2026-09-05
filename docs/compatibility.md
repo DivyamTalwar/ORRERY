@@ -27,4 +27,6 @@ Inspect all six project-scope adapter destinations without writing anything:
 bun run doctor -- --workspace /absolute/path/to/project
 ```
 
-Narrow the report with `--client codex`, `--client claude-code`, or another supported client. The versioned JSON report distinguishes managed, missing, and unsafe files; reports the renderer's effort/read-only capabilities; and lists every claim it cannot observe. It deliberately does **not** call a missing adapter “broken” or a static role file “proof” of live model, effort, sandbox, or advisor behavior.
+Narrow the report with `--client codex`, `--client claude-code`, or another supported client. Schema 2 uses the same exact filenames as the installer and parses each managed file's native role id, model, effort, and advisor control. A marker-only file or a weakened advisor becomes `managed-invalid` and the overall report becomes `drifted`; symlinks and unmanaged conflicts remain `unsafe`.
+
+The report includes the file SHA-256 and declared contract for CI evidence. It deliberately does **not** call a missing adapter “broken” or a static role file “proof” of the live model, effort, sandbox, or advisor behavior.
