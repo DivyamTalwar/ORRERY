@@ -510,7 +510,7 @@ bun run ci            # everything, plus the packaged-artifact end-to-end check
 
 Contributor workflow and trust-boundary rules are documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Run `bun run doctor -- --workspace /absolute/project` for a non-mutating, machine-readable compatibility report across all supported clients. The report inspects derived adapter paths and managed markers while explicitly separating those observations from live-host claims it cannot prove.
+Run `bun run doctor -- --workspace /absolute/project` for a non-mutating, machine-readable compatibility report across all supported clients. The semantic doctor parses native role ids, requested models/effort, and advisor controls, catches marker-only or weakened managed files, and explicitly separates those observed declarations from live-host claims it cannot prove.
 
 ### Renaming or forking
 
