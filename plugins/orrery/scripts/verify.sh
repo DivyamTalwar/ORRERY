@@ -1,5 +1,5 @@
 #!/bin/sh
-# Repository-local verification for Orrery's two-role companion migration.
+# Repository-local verification for Orrery's three-role companion migration.
 
 set -eu
 
@@ -33,11 +33,15 @@ cleanup() {
 trap cleanup 0 HUP INT TERM
 tmp_dir=$(mktemp -d "$tmp_base/orrery-verify.XXXXXX") || fail "could not create disposable verification directory"
 
+astra_file=orrery-astra-implementer.toml
 terra_file=orrery-terra-implementer.toml
 sol_file=orrery-sol-reviewer.toml
 luna_file=orrery-luna-implementer.toml
 legacy_terra_sha256=73cde2e7656fa1967baecdab38d2d89b2f73c6054097cf445351eb5f54678cb5
 legacy_luna_sha256=95ed97eadcf914963629ac30ffb20996e436851007eecab33d7ef958223ec320
+# The v0.6.0 Terra, superseded when Astra took high-complexity work and Terra
+# became the routine lane. Existing exact installs carry these bytes.
+superseded_terra_sha256=76affd32678c812d3c6e6b855467917536f412bd987e58ab6b52ac26700c9e1b
 
 snapshot_files() {
   target=$1
@@ -101,6 +105,32 @@ LEGACY_LUNA
   [ "$(shasum -a 256 "$target/$luna_file" | awk '{print $1}')" = "$legacy_luna_sha256" ] || fail "legacy Luna fixture digest drifted"
 }
 
+write_superseded_roles() {
+  target=$1
+  mkdir -p "$target"
+  cat > "$target/$terra_file" <<'SUPERSEDED_TERRA'
+name = "orrery_terra_implementer"
+description = "Orrery's sole implementation lane for routine and complex work."
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
+
+developer_instructions = """
+You are Orrery's sole implementation worker for routine, context-heavy,
+higher-risk, and wider-blast-radius work. Execute the supplied five-part specification
+within the settled architecture. Preserve every stated interface and constraint, stay
+within the owned file set, and document material judgment calls.
+
+You are not alone in the codebase: preserve concurrent edits and do not revert
+unrelated work. Surface ambiguity, scope conflicts, or verification failures rather
+than redesigning the architecture without direction. Run the requested checks and
+report actual evidence. Do not silently substitute a different role, model, or
+reasoning level; this installed custom-agent profile is the only implementation lane.
+"""
+SUPERSEDED_TERRA
+  cp "$templates/$sol_file" "$target/$sol_file"
+  [ "$(shasum -a 256 "$target/$terra_file" | awk '{print $1}')" = "$superseded_terra_sha256" ] || fail "superseded Terra fixture digest drifted"
+}
+
 for required in "$installer" "$runtime_inspector" "$manifest" "$skill" "$contracts" "$luna_contract" "$readme" "$ui"; do
   test -f "$required" || fail "required file missing: $required"
 done
@@ -123,6 +153,11 @@ import sys, tomllib
 
 root = Path(sys.argv[1])
 expected = {
+    "orrery-astra-implementer.toml": {
+        "name": "orrery_astra_implementer",
+        "model": "gpt-6-astra",
+        "model_reasoning_effort": "xhigh",
+    },
     "orrery-terra-implementer.toml": {
         "name": "orrery_terra_implementer",
         "model": "gpt-5.6-terra",
@@ -146,16 +181,25 @@ for filename, pins in expected.items():
     for field, value in pins.items():
         if data.get(field) != value:
             raise SystemExit(f"{filename}: {field}={data.get(field)!r}, expected {value!r}")
-print("two exact role pins are valid")
+print("three exact role pins are valid")
 PY
-pass "exact two-role TOML inventory"
+pass "exact three-role TOML inventory"
 
-grep -Fq "legacy_terra_sha256=$legacy_terra_sha256" "$installer" || fail "installer legacy Terra digest mismatch"
+installer_terra_digests=$(sed -n 's/^legacy_terra_sha256=//p' "$installer" | tr -d '"')
+case " $installer_terra_digests " in
+  *" $legacy_terra_sha256 "*) ;;
+  *) fail "installer no longer accepts the v0.2.0 Terra digest" ;;
+esac
+case " $installer_terra_digests " in
+  *" $superseded_terra_sha256 "*) ;;
+  *) fail "installer no longer accepts the superseded v0.6.0 Terra digest; every existing exact install would be refused" ;;
+esac
 grep -Fq "legacy_luna_sha256=$legacy_luna_sha256" "$installer" || fail "installer legacy Luna digest mismatch"
 pass "immutable v0.2.0 migration fingerprints"
 
 clean_target=$tmp_dir/clean
 sh "$installer" --target-dir "$clean_target"
+cmp -s "$templates/$astra_file" "$clean_target/$astra_file" || fail "clean Astra install mismatch"
 cmp -s "$templates/$terra_file" "$clean_target/$terra_file" || fail "clean Terra install mismatch"
 cmp -s "$templates/$sol_file" "$clean_target/$sol_file" || fail "clean Sol install mismatch"
 test ! -e "$clean_target/$luna_file" || fail "clean install created retired Luna role"
@@ -173,6 +217,7 @@ pass "missing-target check refusal is non-mutating"
 
 codex_home=$tmp_dir/codex-home
 CODEX_HOME="$codex_home" sh "$installer"
+cmp -s "$templates/$astra_file" "$codex_home/agents/$astra_file" || fail "CODEX_HOME Astra mismatch"
 cmp -s "$templates/$terra_file" "$codex_home/agents/$terra_file" || fail "CODEX_HOME Terra mismatch"
 cmp -s "$templates/$sol_file" "$codex_home/agents/$sol_file" || fail "CODEX_HOME Sol mismatch"
 test ! -e "$codex_home/config.toml" || fail "installer created config.toml"
@@ -185,6 +230,7 @@ pass "CODEX_HOME and relative target behavior"
 migration_target=$tmp_dir/migration
 write_legacy_roles "$migration_target"
 sh "$installer" --target-dir "$migration_target"
+cmp -s "$templates/$astra_file" "$migration_target/$astra_file" || fail "Astra was not added during migration"
 cmp -s "$templates/$terra_file" "$migration_target/$terra_file" || fail "legacy Terra was not migrated"
 cmp -s "$templates/$sol_file" "$migration_target/$sol_file" || fail "Sol changed during migration"
 test ! -e "$migration_target/$luna_file" || fail "exact legacy Luna was not removed"
@@ -324,7 +370,27 @@ for document in "$readme" "$manifest" "$skill" "$contracts" "$ui"; do
   if grep -Eqi 'Terra / High is the sole implementation producer|one role-pinned .*handles all implementation|route all implementation through.*Terra|delegate all implementation to (the )?(native )?Terra' "$document"; then
     fail "stale single-mode implementation claim remains in $document"
   fi
+  # Astra made the second native implementation lane real. Any surviving sentence
+  # that still denies it is a documentation regression, not a wording preference.
+  #
+  # Matched against the document with newlines flattened. These files are hard
+  # wrapped at ~80 columns, so the sentence this guard exists to catch is split as
+  # "There is no\nsecond native implementation" and a line-oriented grep sails
+  # straight past it. A guard that cannot fire is worse than no guard at all.
+  if tr '\n' ' ' < "$document" | tr -s ' ' |
+    grep -Eqi "sole implementation lane|no second native implementation|there is no second native|only implementation lane|single implementation lane|sole implementation producer"; then
+    fail "stale sole-implementation claim remains in $document"
+  fi
 done
+superseded_target=$tmp_dir/superseded
+write_superseded_roles "$superseded_target"
+sh "$installer" --target-dir "$superseded_target"
+cmp -s "$templates/$terra_file" "$superseded_target/$terra_file" || fail "superseded v0.6.0 Terra was not migrated to the routine lane"
+cmp -s "$templates/$astra_file" "$superseded_target/$astra_file" || fail "Astra was not added to a superseded v0.6.0 install"
+cmp -s "$templates/$sol_file" "$superseded_target/$sol_file" || fail "Sol changed during the v0.6.0 upgrade"
+sh "$installer" --target-dir "$superseded_target" --check || fail "upgraded v0.6.0 install does not pass --check"
+pass "v0.6.0 install upgrades to the three-role set without refusal"
+
 forbidden_terra='orrery_terra_'"max"
 forbidden_file='orrery-terra-'"max"
 if grep -ERn "$forbidden_terra|$forbidden_file" "$readme" "$plugin_dir"; then fail "forbidden second Terra role remains"; fi
@@ -335,4 +401,4 @@ sh -n "$runtime_inspector"
 sh -n "$script_dir/verify.sh"
 pass "shell syntax"
 
-printf '%s\n' "VERIFY PASSED: Orrery two-role migration checks completed in $tmp_dir"
+printf '%s\n' "VERIFY PASSED: Orrery three-role migration checks completed in $tmp_dir"
