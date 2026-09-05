@@ -3,6 +3,41 @@
 All notable changes to Orrery are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and Semantic Versioning.
 
+## [Unreleased]
+
+### Added
+
+- **Astra, the high-complexity implementation lane.** `orrery-astra-implementer.toml`
+  pins GPT-6 Astra at `xhigh` reasoning and takes security and authorization logic,
+  concurrency and ordering, non-trivial algorithms, difficult debugging, data and
+  schema migrations, and refactors with a wide blast radius. Its prompt requires the
+  worker to state the invariant, failure mode, and ordering guarantee before editing.
+- A routing reference at `docs/routing.md` covering lane selection, why ties break
+  toward Astra, and what to do when a route turns out to be wrong.
+- A `verify.sh` regression test that seeds a real v0.6.0 install, upgrades it, and
+  asserts Terra migrated, Astra was added, Sol was untouched, and `--check` passes.
+
+### Changed
+
+- **Terra is now the routine lane.** It keeps `gpt-5.6-terra` at `high` and takes
+  bounded, mechanical, fully specified work. Its prompt now requires it to stop and
+  escalate rather than absorb work that turns out to be above its lane.
+- The setup interview recommends `gpt-6-astra` / `xhigh` for the high-complexity
+  role. It previously recommended `gpt-5.6-terra` / `high` for both implementation
+  roles, so a user accepting the defaults configured two identical lanes.
+- Observed routing is now checked against the *selected* lane. Seeing the other
+  implementation lane is treated as a substituted worker and stops the lane, even
+  when the work looks correct.
+- The installer accepts a set of superseded template digests rather than a single
+  one, so both the v0.2.0 and v0.6.0 Terra files migrate instead of being refused as
+  conflicts.
+
+### Fixed
+
+- The stale-claim guard in `verify.sh` scanned line by line, but these documents are
+  hard wrapped at ~80 columns, so the sentence it existed to catch was split across a
+  newline and never matched. It now matches with newlines flattened.
+
 ## [0.6.0] - 2026-08-09
 
 ### Added
