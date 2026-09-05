@@ -2,7 +2,7 @@
 
 # ORRERY
 
-### Sol, Terra and Luna — in exact motion.
+### Astra, Sol, Terra and Luna — in exact motion.
 
 **Architect-first orchestration for coding agents.**
 Exact model pinning. Consented writes. Fail-closed, always.
@@ -23,9 +23,30 @@ Orrery keeps **you** the architect.
 
 Your main chat owns the requirements, the architecture, the decomposition, the diff review and the acceptance. It delegates implementation to three roles you pin yourself — a routine implementer, a high-complexity implementer, and a **read-only advisor** that returns exactly `ship`, `fix-first`, or `rethink`. Worker reports are treated as *claims* until you verify them.
 
+The two implementation roles are genuinely different workers, not one worker with two names. That distinction is the entire point of routing, so they are pinned to different models at different reasoning budgets — and the pin is checked against observed runtime routing before the parent accepts a result.
+
 The same rule applies to client adapters: rendered files express requested model, effort, and read-only behavior, but only a live host observation can prove that a client honored them. See the [compatibility evidence matrix](docs/compatibility.md).
 
 An orrery is a clockwork model of the solar system: every body driven in exact, inspectable relation, nothing drifting on its own. That is the contract.
+
+---
+
+## The four bodies
+
+Each body has one job and one pin. Nothing is selected by price, and nothing falls back to something else when it is unavailable — an unavailable body stops its lane.
+
+| Body | Pin | Orbit |
+|---|---|---|
+| **Astra** | `gpt-6-astra` · `xhigh` | Security and authorization logic, concurrency and ordering, non-trivial algorithms, hard debugging, migrations, wide blast radius. |
+| **Terra** | `gpt-5.6-terra` · `high` | Bounded, mechanical, fully specified work, where the specification already resolves the hard parts. |
+| **Sol** | `gpt-5.6-sol` · `high` · read-only | The fresh final review. Returns exactly `ship`, `fix-first`, or `rethink`, and never implements its own fixes. |
+| **Luna** | `gpt-5.6-luna` · `max` | The explicit opt-in, user-visible Codex app-task lane. Never a fallback, never activated implicitly. |
+
+The parent is the centre they orbit. It inherits *your* model and reasoning effort, and it keeps architecture, decomposition, diff review, rerun verification and acceptance for itself.
+
+**Astra and Terra are the two implementation lanes, and choosing between them is a decision with consequences.** Ties break toward Astra. Over-spending reasoning on a bounded edit costs latency; under-spending it on a migration costs correctness, and only the first is recoverable after the fact.
+
+Routing is enforced at acceptance, not merely requested. If the parent selects Astra and observes Terra, that is a substituted worker and the lane stops — even when the work looks correct — because the selection was made on stated evidence, and quietly serving it from the other lane discards the decision instead of executing it.
 
 ---
 
@@ -57,13 +78,15 @@ Orrery solves the first without ever conceding the second.
                      │  delegates, then verifies
      ┌───────────────┼───────────────┐
      ▼               ▼               ▼
- ┌────────┐     ┌────────┐     ┌──────────┐
- │ROUTINE │     │  HIGH  │     │ ADVISOR  │
- │bounded │     │security│     │ read-only│
- │ wiring │     │concurr.│     │  ship /  │
- │ specs  │     │migrat. │     │fix-first/│
- │        │     │refactor│     │ rethink  │
- └────────┘     └────────┘     └──────────┘
+ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+ │   ROUTINE    │ │     HIGH     │ │   ADVISOR    │
+ │  terra·high  │ │ astra·xhigh  │ │   sol·high   │
+ ├──────────────┤ ├──────────────┤ ├──────────────┤
+ │ bounded      │ │ security     │ │ read-only    │
+ │ wiring       │ │ concurrency  │ │   ship /     │
+ │ full specs   │ │ algorithms   │ │   fix-first /│
+ │              │ │ migrations   │ │   rethink    │
+ └──────────────┘ └──────────────┘ └──────────────┘
 ```
 
 The parent never types implementation code when a delegated lane can do it. Workers receive a **complete five-part specification** — objective, file ownership, interfaces, constraints, verification — and return structured evidence. The parent then inspects the working tree, confirms only in-scope files changed, and re-runs the verification commands **itself** before a fresh advisor is asked for a verdict.
@@ -191,7 +214,7 @@ The interview stays in your main chat and asks one question at a time: client, s
 | Role | Purpose | Current Codex recommendation |
 |---|---|---|
 | Routine implementer | Bounded, mechanical, fully specified work | `gpt-5.6-terra`, `high` |
-| High-complexity implementer | Security, concurrency, algorithms, hard debugging, migrations, wide refactors | `gpt-5.6-terra`, `high` |
+| High-complexity implementer | Security, concurrency, algorithms, hard debugging, migrations, wide refactors | `gpt-6-astra`, `xhigh` |
 | Advisor | Commitment review and final diff/evidence verdict; requested read-only | `gpt-5.6-sol`, `high` |
 | Orchestrator | Parent ownership and verification | `inherit` |
 
@@ -240,7 +263,7 @@ Adapter uninstall previews the current profile's managed files and its confirmat
 
 The parent owns the specification, architecture, decomposition, actual diff review, rerun verification, correction loops, and acceptance. Routine versus high routing is based on task complexity, never price alone. Worker reports are claims until the parent verifies the working tree and checks. The advisor remains behaviorally read-only unless the client exposes evidence of OS-enforced isolation; Orrery reports the observed guarantee rather than inventing one.
 
-The historical exact Codex native lane remains compatible: separately installed Terra / High implementation and a fresh Sol / High reviewer. It does not use a Luna custom-agent TOML. The Luna lane instead uses app task tools and is outside native subagent V2.
+The historical exact Codex native lane remains compatible: separately installed Astra / xhigh and Terra / high implementation lanes and a fresh Sol / high reviewer. It does not use a Luna custom-agent TOML. The Luna lane instead uses app task tools and is outside native subagent V2.
 
 | Mode | Worker | Parent ownership |
 |---|---|---|
