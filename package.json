@@ -15,7 +15,8 @@
     "bench:registry": "bun tools/bench-tool-registry.ts",
     "cursor:local": "bun tools/cursor-local.ts",
     "doctor": "bun tools/compatibility-doctor.ts",
-    "test": "bun test plugins/orrery/mcp/server.test.ts plugins/orrery/mcp/tool-registry.test.ts tools/cursor-local.test.ts tools/compatibility-doctor.test.ts"
+    "tools:review": "bun tools/tool-surface-review.ts --baseline tools/schema/tools.policy.json",
+    "test": "bun test plugins/orrery/mcp/server.test.ts plugins/orrery/mcp/tool-registry.test.ts tools/cursor-local.test.ts tools/compatibility-doctor.test.ts tools/tool-surface-review.test.ts"
   },
   "devDependencies": {
     "@types/bun": "1.3.5",
