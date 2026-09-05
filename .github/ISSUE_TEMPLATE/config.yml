@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/DivyamTalwar/ORRERY/security/advisories/new
+    about: Report privately through GitHub's security advisory flow. Do not open a public issue.
+  - name: Question or idea
+    url: https://github.com/DivyamTalwar/ORRERY/discussions
+    about: Ask in Discussions. Installation help and design criticism both belong there.

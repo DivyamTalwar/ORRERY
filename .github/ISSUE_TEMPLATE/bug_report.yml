@@ -1,0 +1,78 @@
+name: Bug report
+description: Something behaved differently from what the docs promise
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **A refusal is often correct behaviour.** Orrery stops rather than guessing: it
+        refuses an unmanaged file at a destination, a drifted managed file, an expired or
+        replayed consent token, an unavailable pinned model, and any lane whose routing it
+        cannot observe. Paste the exact refusal so we can tell a working guarantee from a
+        broken one.
+
+        If `get_setup_status` reports `tools-changed`, that is the rug-pull alarm, not a
+        nuisance. Report both digests and do not re-approve to make it go away.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Exact tool call or command and its exact output. Redact absolute paths and ids if you need to.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and where the docs say so
+      description: Quote the line from the README, a reference file, or a tool description.
+    validations:
+      required: true
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host
+      options:
+        - Codex
+        - Cursor
+        - Claude Code
+        - VS Code
+        - GitHub Copilot
+        - Kiro
+        - None - repository tooling only
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface
+      options:
+        - MCP server (setup, preferences, adapter install)
+        - Native Codex companion roles (Astra / Terra / Sol)
+        - Luna app-task lane
+        - Orchestration skill behaviour
+        - Repository tooling (validate, sbom, verify)
+    validations:
+      required: true
+  - type: textarea
+    id: gates
+    attributes:
+      label: Gate output
+      description: "Output of `bun run ci`. It is offline: it calls no model and writes nothing outside a temporary directory."
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: "`bun --version`, your client version, and your OS."
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have not pasted any credential, token, or private path
+          required: true

@@ -1,0 +1,38 @@
+name: Feature request
+description: Propose a change to what Orrery does or promises
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Orrery refuses more than it enables, on purpose. A proposal is strongest when it
+        says which existing guarantee it preserves — or argues honestly that the guarantee
+        was wrong.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you unable to do today? Describe the situation, not the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: The proposal
+    validations:
+      required: true
+  - type: checkboxes
+    id: invariants
+    attributes:
+      label: Which invariants does this preserve?
+      description: See CONTRIBUTING.md. If your proposal breaks one, say so and argue for it rather than leaving it unticked.
+      options:
+        - label: The model can never choose where a file is written
+        - label: No silent fallback - an unavailable pin stops its lane
+        - label: No unenforceable claim - a guarantee the host cannot honour is refused, not stored
+        - label: Refuse rather than overwrite - no partial mutation on any failure path
+        - label: Manifest conformance is never presented as runtime evidence
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you have already tried or ruled out
