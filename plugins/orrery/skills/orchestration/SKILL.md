@@ -85,8 +85,8 @@ the advisor but is not an OS boundary. `frontmatter-flag` and `prompt-only` must
 described as requests whose behaviour has to be observed.
 
 The retained exact Codex compatibility lane may still use its separately installed
-`orrery_terra_implementer` and `orrery_sol_reviewer` profiles and the legacy
-preflight below. Do not require those companions for configured cross-client roles.
+`orrery_astra_implementer`, `orrery_terra_implementer`, and `orrery_sol_reviewer`
+profiles and the legacy preflight below. Do not require those companions for configured cross-client roles.
 
 Activate the Luna task lane only when the user's current request explicitly says
 “Use the Luna task lane.” It uses Codex app task tools rather than a native agent file.
@@ -94,7 +94,7 @@ If Luna / Max or a required app tool is unavailable, stop without fallback.
 
 ## Retained Codex compatibility preflight
 
-The two role files are user-owned native custom-agent TOML files. Installing or
+The three role files are user-owned native custom-agent TOML files. Installing or
 updating the plugin does not automatically register them. Install them separately and
 start a fresh Codex task so native discovery sees the current profiles.
 
@@ -111,15 +111,16 @@ preflight in its contract:
    sh "$installer" --check
    ~~~
 
-   It must exit zero. This proves Terra and Sol match the shipped templates exactly
-   and the retired Luna companion file is absent. If the check reports a missing,
+   It must exit zero. This proves Astra, Sol, and Terra match the shipped templates
+   exactly and the retired Luna companion file is absent. If the check reports a missing,
    stale, unsafe, or conflicting file, stop the affected lane. Give the user the
    installer path and reported destination. Never work around failure with another
    agent, model, or effort.
 
-2. Inspect the native spawn tool's available `agent_type` entries. Both exact names
-   must be exposed:
+2. Inspect the native spawn tool's available `agent_type` entries. All three exact
+   names must be exposed:
 
+   - `orrery_astra_implementer`
    - `orrery_terra_implementer`
    - `orrery_sol_reviewer`
 
@@ -142,8 +143,11 @@ preflight in its contract:
 
    The helper's allowlisted output is the authoritative local fallback for omitted
    model and effort. If public and local values both exist, they must agree. Accepted
-   values are Terra / high for implementation and Sol / high for review. Missing,
-   inconsistent, unavailable, or unobservable routing stops that lane.
+   values are Astra / xhigh or Terra / high for implementation — and only the lane
+   actually selected — and Sol / high for review. Observing the other implementation
+   lane is a substitution, not a convenience, and stops the lane exactly as a missing
+   pin does. Missing, inconsistent, unavailable, or unobservable routing stops that
+   lane.
 
 4. For every Sol review, capture the observed sandbox policy type and permission
    profile type. The shipped reviewer requests read-only sandboxing, but the host may
@@ -169,32 +173,53 @@ is wrong, correct the specification and delegate the fix. If the Luna result is 
 send a precise correction back to the same task. Do not silently repair a failed child
 patch or create a replacement task merely to avoid an unresolved correction.
 
-## Retained Codex native implementation through Terra / High
+## Retained Codex native implementation through Astra and Terra
 
-This section applies only to the explicitly retained exact Codex compatibility lane, not configured adapters. Use the same role for routine features, mechanical edits, difficult debugging,
-security-sensitive work, non-trivial algorithms, and broad refactors. There is no
-second native implementation or fallback lane. This section applies only when the
-user has not explicitly chosen the Luna task lane.
+This section applies only to the explicitly retained exact Codex compatibility lane,
+not configured adapters, and only when the user has not explicitly chosen the Luna
+task lane.
 
-Spawn exactly:
+There are two native implementation lanes, and the parent selects one before
+spawning:
+
+- **Terra / high** for bounded, mechanical, fully specified work, where the
+  specification already resolves the hard parts.
+- **Astra / xhigh** for security and authorization logic, concurrency and ordering,
+  non-trivial algorithms, difficult debugging, data and schema migrations, and
+  refactors with a wide blast radius.
+
+Route on stated evidence, never on price. When the signals genuinely conflict, choose
+Astra: over-spending reasoning on a bounded edit costs latency, under-spending it on
+a migration costs correctness, and only the first is recoverable.
+
+Spawn exactly one of:
 
 ~~~text
 agent_type: orrery_terra_implementer
 fork_turns: none
 ~~~
 
-The installed role pins GPT-5.6 Terra at high reasoning. Omit per-spawn model and
-reasoning fields. Confirm role, model, and effort using the public-details-first
-procedure before accepting work.
+~~~text
+agent_type: orrery_astra_implementer
+fork_turns: none
+~~~
+
+The installed roles pin GPT-5.6 Terra at high and GPT-6 Astra at xhigh reasoning.
+Omit per-spawn model and reasoning fields. Confirm role, model, and effort using the
+public-details-first procedure before accepting work, and confirm it is the lane you
+selected.
 
 Routing rules:
 
+- Select the implementation lane before spawning, and record the evidence for it.
 - Give each worker one owned file set or bounded responsibility.
 - State that it is not alone in the codebase, must preserve other edits, and must
   adapt to concurrent changes.
 - Run independent non-overlapping work concurrently only when useful. Keep shared-file
   edits and dependency chains serial.
 - Give a failed lane a corrected specification; never repeat an unchanged prompt.
+- Re-route rather than retry when a failure shows the work was sent to the wrong
+  lane; a corrected specification aimed at the same wrong lane fails the same way.
 - Never silently substitute a role, model, or reasoning level.
 
 ## Route the explicit Luna task lane through Codex app tools
@@ -249,8 +274,9 @@ Treat worker reports as claims. Before acceptance:
 ## Consult fresh Sol at native commitment boundaries
 
 Before a consequential architecture, migration, public API, or wide refactor in the
-native lane, spawn a fresh reviewer using the commitment-boundary packet from the role
-contracts:
+native lane — and always before accepting Astra-lane work, since the lane is selected
+precisely when the blast radius is wide — spawn a fresh reviewer using the
+commitment-boundary packet from the role contracts:
 
 ~~~text
 agent_type: orrery_sol_reviewer

@@ -11,22 +11,45 @@ Adapt every placeholder without removing a required field.
 Before every native spawn, complete steps 1-2 of SKILL.md's preflight. After spawning,
 complete steps 3-4 before accepting the result:
 
-1. Require the non-mutating companion check to prove both installed files exactly
-   match current templates and the retired companion file is absent.
-2. Require native exposure of exactly `orrery_terra_implementer` and
-   `orrery_sol_reviewer`.
+1. Require the non-mutating companion check to prove all three installed files
+   exactly match current templates and the retired companion file is absent.
+2. Require native exposure of exactly `orrery_astra_implementer`,
+   `orrery_terra_implementer`, and `orrery_sol_reviewer`.
 3. Observe the selected role, model, and effort through public spawn/details metadata
    first, using the local runtime inspector only for omitted fields. Accept only
-   Terra / High for implementation and Sol / High for review.
+   Astra / xhigh or Terra / high for implementation — and only the one the parent
+   actually selected — and Sol / high for review. An implementation that arrives from
+   the other lane is a routing failure even when the work looks correct: the parent
+   chose that lane on stated evidence, and silently serving it from the cheaper or
+   deeper lane discards the decision rather than executing it.
 4. For the reviewer, capture actual sandbox policy and permission profile types.
 
 A missing, stale, unsafe, conflicting, unavailable, inconsistent, or unobservable
 role/model/effort stops the native lane. Never silently fall back. Model and effort are
 pinned by custom-agent TOML, so omit native per-spawn overrides.
 
+## Choosing the implementation lane
+
+Both implementation lanes take the identical five-part specification. Only the
+routing decision differs, and the parent makes it before spawning, on evidence it
+can state:
+
+| Signal | Lane |
+|---|---|
+| Bounded, mechanical, fully specified; the hard thinking is already in the spec | Terra / high |
+| Security or authorization logic, concurrency or ordering, non-trivial algorithms, difficult debugging, data or schema migration, wide blast radius | Astra / xhigh |
+
+When the signals genuinely conflict, choose Astra. The asymmetry is deliberate:
+over-spending reasoning on a bounded edit costs latency, while under-spending it on
+a migration costs correctness, and only one of those is recoverable after the fact.
+
+Record which lane was selected and why. If the work turns out to be misrouted mid
+flight, stop that lane and re-delegate with a corrected specification rather than
+letting the wrong lane finish.
+
 ## Shared implementation contract
 
-Every Terra prompt must contain all five sections:
+Every implementation prompt, for either lane, must contain all five sections:
 
 ~~~text
 OBJECTIVE
@@ -102,11 +125,11 @@ concurrent; shared-file and dependent stacks are serial. Worktree isolation alon
 not merge safety, and “report back” means explicit primary monitoring/read, not an
 automatic callback.
 
-## Terra / High - sole native implementation lane
+## Terra / high - routine implementation lane
 
-Use this lane for every delegated native implementation, from routine edits through
-complex, security-sensitive, context-heavy, and broad work. It is not the Luna
-task-lane implementation path.
+Use this lane for bounded, mechanical, fully specified work: wiring, boilerplate,
+contained edits, and changes whose specification already resolves the hard parts. It
+is not the Luna task-lane implementation path.
 
 Spawn exactly:
 
@@ -123,9 +146,45 @@ Prompt:
 
 ~~~text
 ROLE
-Act as Orrery's sole implementation worker. Resolve the supplied specification
+Act as Orrery's routine implementation worker. Resolve the supplied specification
 within the settled architecture, preserve every stated interface and constraint, and
-surface ambiguity instead of redesigning the architecture.
+surface ambiguity instead of redesigning the architecture. If the work turns out to
+be security-sensitive, concurrent, algorithmically subtle, a migration, or wider than
+the owned file set, stop and say so instead of absorbing it.
+
+<paste and complete the Shared implementation contract>
+~~~
+
+## Astra / xhigh - high-complexity implementation lane
+
+Use this lane for security and authorization logic, concurrency and ordering,
+non-trivial algorithms, difficult debugging, data and schema migrations, and refactors
+with a wide blast radius. It is not the Luna task-lane implementation path.
+
+Spawn exactly:
+
+~~~text
+agent_type: orrery_astra_implementer
+fork_turns: none
+~~~
+
+The installed role pins GPT-6 Astra at xhigh reasoning. Do not attach per-spawn model
+or reasoning fields. Require public-details-first runtime observation of the exact
+role and pin before accepting its report. Observing Terra / high where Astra / xhigh
+was selected stops the lane; it is a substituted worker, not a lucky one.
+
+Prompt:
+
+~~~text
+ROLE
+Act as Orrery's high-complexity implementation worker. Resolve the supplied
+specification within the settled architecture, preserve every stated interface and
+constraint, and surface ambiguity instead of redesigning the architecture.
+
+Before editing, state the invariant you are preserving, the failure mode you are
+preventing, and the ordering or isolation guarantee you are relying on. This lane
+exists to spend reasoning on exactly those, and a patch that never named them has
+not used the lane it was routed to.
 
 <paste and complete the Shared implementation contract>
 ~~~
