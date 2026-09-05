@@ -92,6 +92,6 @@ Neither is an implementation lane and neither is ever a fallback.
 
 ## See also
 
-- [Role contracts](../plugins/orrery/skills/orchestration/references/role-contracts.md) — the exact spawn packets and the five-part specification.
-- [Luna task lane](../plugins/orrery/skills/orchestration/references/luna-task-lane.md) — the opt-in app-task contract.
+- [Role contracts](https://github.com/DivyamTalwar/ORRERY/blob/main/plugins/orrery/skills/orchestration/references/role-contracts.md) — the exact spawn packets and the five-part specification.
+- [Luna task lane](https://github.com/DivyamTalwar/ORRERY/blob/main/plugins/orrery/skills/orchestration/references/luna-task-lane.md) — the opt-in app-task contract.
 - [Compatibility evidence](compatibility.md) — what each host can actually enforce.
