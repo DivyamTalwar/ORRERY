@@ -12,8 +12,22 @@ Exact model pinning. Consented writes. Fail-closed, always.
 [![MCP](https://img.shields.io/badge/MCP-2026--07--28-black?style=flat-square)](https://modelcontextprotocol.io)
 [![Runtime](https://img.shields.io/badge/runtime-Bun-black?style=flat-square)](https://bun.sh)
 [![Dependencies](https://img.shields.io/badge/runtime%20dependencies-0-black?style=flat-square)](#zero-dependencies)
+[![Tests](https://img.shields.io/badge/tests-73%20offline-black?style=flat-square)](#development)
+[![Gate](https://img.shields.io/badge/gate-fail--closed-black?style=flat-square)](#what-it-will-not-do)
 
 </div>
+
+---
+
+## Contents
+
+**Start here** — [What this is](#what-this-is) · [The four bodies](#the-four-bodies) · [The problem](#the-problem)
+
+**How it runs** — [How it works](#how-it-works) · [The flow](#the-flow) · [Orchestration semantics](#orchestration-semantics) · [Routing reference](docs/routing.md)
+
+**What it guarantees** — [The one rule](#the-one-rule-everything-rests-on) · [Security model](#security-model) · [Tool-surface consent](#tool-surface-consent) · [Supported clients](#supported-clients) · [What it will not do](#what-it-will-not-do) · [When not to use this](#when-not-to-use-this)
+
+**Using it** — [Quick start](#quick-start) · [MCP tools](#mcp-tools) · [Preview and consent](#preview-consent-reconfigure-and-uninstall) · [Development](#development)
 
 ---
 
@@ -95,6 +109,134 @@ A `ship` verdict is not the end of a conversation. It is the end of an audit.
 
 ---
 
+## The flow
+
+There is a trap in the question "how do all four models work together", and it is worth naming before the diagram: **they never all run at once.** The four bodies are a roster, not a pipeline.
+
+- **Astra ⊕ Terra** — mutually exclusive. Exactly one implementer per delegation.
+- **Native lane ⊕ Luna lane** — mutually exclusive. Luna is opt-in only and is never a fallback.
+
+The most that is ever live in a single run is three bodies, and only when the parent is Sol.
+
+### The native lane
+
+```
+              YOU
+               │  goal + constraints
+               ▼
+   ┌───────────────────────────┐
+   │  PARENT CHAT = ARCHITECT  │   inherits YOUR model
+   │  (Sol / High recommended, │   ← a recommendation only,
+   │   never required)         │     never a gate
+   └─────────────┬─────────────┘
+                 │
+      ┌──────────▼──────────┐
+      │  0. SETUP GATE      │  get_setup_status → get_preferences
+      │     tools-changed?  │  ── STOP. A security event, not a nuisance.
+      └──────────┬──────────┘
+                 │
+      ┌──────────▼──────────┐
+      │  1. PREFLIGHT       │  install-agents.sh --check → must exit 0
+      │                     │  all three agent_type names exposed?
+      └──────────┬──────────┘
+                 │
+      ┌──────────▼──────────┐
+      │  2. ROUTE           │  the parent decides, on stated evidence
+      └─────┬─────────┬─────┘
+            │         │
+   bounded, │         │  security · concurrency · algorithms
+   specified│         │  hard debugging · migrations · wide radius
+            ▼         ▼
+      ┌─────────┐ ┌──────────┐
+      │  TERRA  │ │  ASTRA   │   ← exactly one of these
+      │  high   │ │  xhigh   │
+      └────┬────┘ └────┬─────┘
+           └─────┬─────┘
+                 │  five-part specification in, evidence out
+      ┌──────────▼──────────┐
+      │  3. ROUTING PROOF   │  observed model/effort == the lane selected?
+      │                     │  ── mismatch is a substituted worker. STOP.
+      └──────────┬──────────┘
+                 │
+      ┌──────────▼──────────┐
+      │  4. PARENT VERIFIES │  inspect the diff · in-scope files only ·
+      │     (not the worker)│  RERUN the verification commands itself
+      └──────────┬──────────┘
+                 │
+      ┌──────────▼──────────┐
+      │  5. SOL — read-only │  fresh context, never implements its own fixes
+      └──────────┬──────────┘
+                 │
+        ship ────┴──── fix-first ──▶ re-delegate, verify, obtain a NEW review
+          │              rethink  ──▶ revise architecture, do not report done
+          ▼
+       ACCEPT
+```
+
+### Sol appears three times
+
+| Where | What it is |
+|---|---|
+| **The parent** | `gpt-5.6-sol` / High is the *recommended* orchestrator, and purely advisory. The skill must never block because the parent is not Sol, never change it, and never claim it changed it. |
+| **Commitment-boundary consult** | Before a consequential architecture decision, migration, public API, or wide refactor — and always before accepting Astra-lane work, since that lane is selected precisely when the blast radius is wide. |
+| **Final review** | Always. Returns exactly `ship`, `fix-first`, or `rethink`. |
+
+Sol reviewing Sol-authored work is **context-clean, not model-family-independent.** That distinction is stated rather than glossed, because it is the limit of what this lane can honestly claim.
+
+### The Luna lane
+
+Entered only when the current request explicitly authorizes it — *"Use the Luna task lane for this feature."*
+
+```
+PARENT ──list_projects──▶ pick projectId, check isGitRepository
+   │
+   ├──create_thread──▶  LUNA   gpt-5.6-luna · thinking: max
+   │                    a user-visible Codex app task, own worktree
+   │                    ⚠ clientThreadId is a SETUP HANDLE, not a task id
+   │                       → correlate a real threadId + hostId first
+   │
+   ├──wait_threads──▶ monitor
+   ├──read_thread───▶ handoff
+   │
+   ├── PARENT inspects the actual branch, diff and checks itself
+   │
+   ├──send_message_to_thread──▶ corrections go to the SAME task
+   │                             then wait, read, and re-review again
+   │
+   └── PARENT authorizes the PR ──▶ only now may the child push
+```
+
+Two things differ sharply from the native lane. **No Sol is spawned** — the parent performs the final review and acceptance itself. And **the child receives a complete packet**, because a new user-visible task inherits none of the parent's context.
+
+Worktree isolation is explicitly not merge safety. Dependent and shared-file stacks stay serial.
+
+### What is live per delegation
+
+| Run | Astra | Terra | Sol | Luna |
+|---|:--:|:--:|:--:|:--:|
+| Native · routine | | ● | ● review *(+ parent)* | |
+| Native · high-complexity | ● | | ● consult + review *(+ parent)* | |
+| Luna · explicit opt-in | | | *parent only* | ● |
+
+### Every arrow can stop
+
+No step in either lane degrades to a warning.
+
+| Condition | Result |
+|---|---|
+| `tools-changed` | Every stateful operation blocked until a human re-approves |
+| `install-agents.sh --check` non-zero | That lane stops; no substitution |
+| A required `agent_type` is missing | Stop; never fall back to a built-in or similarly named role |
+| A pinned model is unavailable | That lane stops |
+| Routing unobservable or inconsistent | That lane stops |
+| Observed lane ≠ selected lane | Treated as a substituted worker — stops even when the work looks correct |
+| Sandbox broadened where hard isolation was required | Review stops; the observed policy is reported, never assumed |
+| A required Luna app tool, Luna, or Max is unavailable | Stop without falling back to a native lane |
+
+The parent keeps requirements, architecture, decomposition, diff inspection, rerun verification and acceptance in **every** flow. Those are never delegated.
+
+---
+
 ## The one rule everything rests on
 
 > ### The model can never choose where a file is written.
@@ -173,6 +315,29 @@ A short list, because it matters more than the feature list:
 - It will **not** treat manifest conformance as evidence of runtime behaviour.
 - It will **not** pretend the orchestration prompt layer is enforced. The MCP server enforces the *file-write* contract. It cannot enforce that a model genuinely read a diff.
 - It will **not** claim a consent token proves a human saw the preview. The token makes a write *exact* and *stale-proof*, but it is handed back to the caller, so an unsupervised agent can chain preview into install on its own. The install and uninstall tools are annotated `destructiveHint: true` so your host prompts for them, and **that prompt is the human-in-the-loop control**.
+
+---
+
+## When not to use this
+
+Delegation is not free, and this repository will not pretend otherwise.
+
+Cognition's argument against multi-agent systems is the sharpest one available, and it is correct: parallel agents **miscommunicate subtasks** and **make conflicting implicit decisions**, because every action carries a decision the other agent cannot see. ([source](https://cognition.com/blog/dont-build-multi-agents))
+
+Orrery does not dispute it. It is shaped around it:
+
+- **One implementer at a time.** Astra and Terra are mutually exclusive per delegation. There is no fan-out of implementers over the same work, so there are no conflicting implicit decisions to reconcile.
+- **Decisions are made before the spawn.** Architecture, interfaces and decomposition never leave the parent. A worker receives a settled specification, not an open question.
+- **The parent re-runs verification itself.** A worker's report is a claim. If the parent would have to do the work anyway to check it, delegation bought nothing.
+
+Concurrency is permitted only for genuinely independent, non-overlapping file sets; shared-file and dependent work stays serial.
+
+**Do not use this when:**
+
+- The change is a single bounded edit in one file. The preflight, routing proof and review round trip cost more than the edit.
+- You want a fire-and-forget agent. The parent must inspect the diff and re-run the checks; that is not optional, and it is most of the value.
+- Your host cannot bind per-role models and effort. On prompt-only surfaces Orrery will tell you plainly that the bindings are unenforceable — which is honest, but it means you are buying much less.
+- You want the tool to resolve ambiguity for you. It refuses and asks instead. That is the product.
 
 ---
 
@@ -369,6 +534,14 @@ An orrery is a precision clockwork model of the solar system — every body driv
 Two things make it the right name. The mechanism it models is transparent by construction: every gear is visible, every relation inspectable, nothing hidden inside the case. And the bodies it drives are the ones you are actually orchestrating.
 
 Auditability is not a feature here. It is the whole machine.
+
+---
+
+## Prior art
+
+The shape of this project — a client plugin that ships exact native role files, a fail-closed installer that refuses rather than overwrites, and an orchestration skill that keeps architecture and acceptance in the parent — follows the path cut by [sol-advisor](https://github.com/DannyMac180/sol-advisor) (MIT), which established that discipline for Codex on a single model family.
+
+Orrery keeps that spine and changes three things: destinations are **derived** rather than supplied, so no caller can name a target path; the tool surface is **content-addressed and consented**, so a rug pull becomes a visible `tools-changed` stop; and the two implementation lanes are pinned to **different models at different reasoning budgets**, so routing has a consequence rather than a label.
 
 ---
 
