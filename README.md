@@ -514,6 +514,8 @@ Contributor workflow and trust-boundary rules are documented in [CONTRIBUTING.md
 
 Run `bun run doctor -- --workspace /absolute/project` for a non-mutating, machine-readable compatibility report across all supported clients. The semantic doctor parses native role ids, requested models/effort, and advisor controls, catches marker-only or weakened managed files, and explicitly separates those observed declarations from live-host claims it cannot prove.
 
+Before choosing a host, run `bun run plan -- --require-effort --minimum-readonly tool-allowlist --scope project` for a read-only capability negotiation report. Unlike a path-only portability matrix, the [planner](docs/capability-planner.md) refuses clients that would silently weaken the requested effort or advisor-isolation contract.
+
 ### Renaming or forking
 
 Several values are *derived* from the product name, including the pinned tool-surface digest and the byte-exact legacy migration fingerprints. A manual find-and-replace will silently break them, so use the guarded tool, which recomputes every derived digest and prints a dry run first:
