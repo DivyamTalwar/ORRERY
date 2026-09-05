@@ -25,7 +25,7 @@ Exact model pinning. Consented writes. Fail-closed, always.
 
 **How it runs** — [How it works](#how-it-works) · [The flow](#the-flow) · [Orchestration semantics](#orchestration-semantics) · [Routing reference](docs/routing.md)
 
-**What it guarantees** — [The one rule](#the-one-rule-everything-rests-on) · [Security model](#security-model) · [Tool-surface consent](#tool-surface-consent) · [Supported clients](#supported-clients) · [What it will not do](#what-it-will-not-do) · [When not to use this](#when-not-to-use-this)
+**What it guarantees** — [The one rule](#the-one-rule-everything-rests-on) · [Security model](#security-model) · [Tool-surface consent](#tool-surface-consent) · [Supported clients](#supported-clients) · [What it will not do](#what-it-will-not-do) · [Interrogate it yourself](#interrogate-it-yourself) · [When not to use this](#when-not-to-use-this)
 
 **Using it** — [Quick start](#quick-start) · [MCP tools](#mcp-tools) · [Preview and consent](#preview-consent-reconfigure-and-uninstall) · [Development](#development)
 
@@ -319,6 +319,39 @@ A short list, because it matters more than the feature list:
 
 ---
 
+## Interrogate it yourself
+
+Every claim on this page is checkable, offline, before you trust any of it. Three read-only commands answer the three questions that actually matter, at the three moments they matter.
+
+| Moment | Question | Command |
+|---|---|---|
+| **Before you pick a client** | Which host can actually honour the contract I need? | `bun run plan` |
+| **After you install** | What is really on disk right now, and does it still match? | `bun run doctor` |
+| **When the tool surface moves** | What changed, and is any of it permission-bearing? | `bun run tools:review` |
+
+None of them writes anything. None of them calls a model. All three refuse to flatter you:
+
+```sh
+# Refuses any client that would silently weaken the effort or isolation you asked for
+bun run plan -- --require-effort --minimum-readonly tool-allowlist --scope project
+
+# Parses role ids, requested models and effort, and advisor controls — not just markers
+bun run doctor -- --workspace /absolute/project
+
+# Classifies added arguments, new stateful tools and weakened annotations
+bun run tools:review
+```
+
+What each one will **not** do is the point:
+
+- **`plan`** will not hand you a host that binds fewer guarantees than you asked for. A path-only portability matrix would tell you six clients "work"; the planner tells you which ones would quietly downgrade your advisor isolation and refuses them.
+- **`doctor`** will not report a marker-only or weakened managed file as healthy, and will not present a *declaration* as a live-host *proof*. It separates what it observed on disk from what it cannot know about runtime behaviour, and says which is which.
+- **`tools:review`** will not ask you to diff opaque hashes. `TOOLS_DIGEST` tells you something moved; this tells you whether what moved can take a new argument, hold state, or has quietly dropped a `readOnlyHint`.
+
+If any of the three disagrees with this README, the README is wrong. Please open an issue.
+
+---
+
 ## When not to use this
 
 Delegation is not free, and this repository will not pretend otherwise.
@@ -512,9 +545,7 @@ bun run ci            # everything, plus the packaged-artifact end-to-end check
 
 Contributor workflow and trust-boundary rules are documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Run `bun run doctor -- --workspace /absolute/project` for a non-mutating, machine-readable compatibility report across all supported clients. The semantic doctor parses native role ids, requested models/effort, and advisor controls, catches marker-only or weakened managed files, and explicitly separates those observed declarations from live-host claims it cannot prove.
-
-Before choosing a host, run `bun run plan -- --require-effort --minimum-readonly tool-allowlist --scope project` for a read-only capability negotiation report. Unlike a path-only portability matrix, the [planner](docs/capability-planner.md) refuses clients that would silently weaken the requested effort or advisor-isolation contract.
+The three read-only diagnostics — `plan`, `doctor` and `tools:review` — are described under [Interrogate it yourself](#interrogate-it-yourself). The planner has its own reference at [docs/capability-planner.md](docs/capability-planner.md).
 
 ### Renaming or forking
 
