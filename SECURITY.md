@@ -68,6 +68,10 @@ this:
   description, input schema, output schema, and annotation.
 - CI asserts it matches `tools/schema/tools.digest`, so no description can change without
   a deliberate, reviewable commit.
+- `tools/schema/tools.policy.json` is the human-readable security projection. Run
+  `bun run tools:review` to classify added arguments, new stateful tools, and weakened
+  annotations before updating either pin. Annotations are review signals, not proof that
+  a host enforces the advertised behaviour.
 - `save_preferences` records the digest you approved.
 - Any later mismatch reports status `tools-changed` and **blocks every stateful
   operation** until a human re-runs the setup interview.

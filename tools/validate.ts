@@ -2,7 +2,9 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, realpathSync, chmodSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import { tmpdir } from "node:os";
-import { PLUGIN_VERSION, TOOLS_DIGEST } from "../plugins/orrery/mcp/server";
+import { PLUGIN_VERSION, tools, TOOLS_DIGEST } from "../plugins/orrery/mcp/server";
+import { canonicalJson } from "../plugins/orrery/mcp/integrity";
+import { snapshotToolPolicy } from "./tool-surface-review";
 
 const root = resolve(import.meta.dir, "..");
 const plugin = join(root, "plugins", "orrery");
@@ -229,6 +231,13 @@ function validateToolSurface() {
   const pin = readFileSync(pinPath, "utf8").trim();
   if (pin !== expected) {
     fail(`tool-surface digest mismatch: pinned ${pin}, computed ${expected}. Review the tool surface change, then update the pin deliberately.`);
+  }
+  const policyPath = join(root, "tools", "schema", "tools.policy.json");
+  if (!existsSync(policyPath)) { fail("tools/schema/tools.policy.json is required"); return; }
+  const pinnedPolicy = json(policyPath);
+  const currentPolicy = snapshotToolPolicy(tools, TOOLS_DIGEST);
+  if (canonicalJson(pinnedPolicy) !== canonicalJson(currentPolicy)) {
+    fail("tool-surface policy mismatch: run `bun run tools:review`, review the permission delta, then update tools/schema/tools.policy.json deliberately");
   }
 }
 

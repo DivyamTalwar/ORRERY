@@ -273,6 +273,7 @@ Orrery implements it.
 
 - `TOOLS_DIGEST` is the SHA-256 of the **complete** tool surface — every name, description, input schema, output schema and behaviour annotation.
 - CI asserts it matches a checked-in pin, so no description can change without a deliberate, reviewable commit.
+- `tools/schema/tools.policy.json` projects the permission-bearing part into a readable baseline; `bun run tools:review` classifies added arguments, stateful tools, and annotation changes instead of asking reviewers to compare opaque hashes.
 - Setup records the digest you approved.
 - Any later mismatch reports status **`tools-changed`** and **blocks every stateful operation** until a human re-approves.
 
@@ -502,6 +503,7 @@ bun install --frozen-lockfile
 bun run typecheck     # strict TypeScript, checked index access
 bun run test
 bun run validate      # manifests, skills, links, pinned schemas, pinned tool surface
+bun run tools:review  # explain permission-bearing changes against the reviewed baseline
 bun run sbom
 bun run ci            # everything, plus the packaged-artifact end-to-end check
 ```

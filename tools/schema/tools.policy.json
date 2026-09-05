@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "surfaceDigest": "bc252b6e9c447c41e5712acf5c825d0417b9ededfa7920ba5baf0ef02205470e",
+  "tools": [
+    {
+      "name": "get_preferences",
+      "arguments": [],
+      "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false }
+    },
+    {
+      "name": "get_setup_status",
+      "arguments": [],
+      "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false }
+    },
+    {
+      "name": "install_client_adapter",
+      "arguments": ["confirmationToken", "userScopeConfirmationToken", "workspace"],
+      "annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": false, "openWorldHint": false }
+    },
+    {
+      "name": "render_client_adapter",
+      "arguments": ["workspace"],
+      "annotations": { "readOnlyHint": false, "destructiveHint": false, "idempotentHint": false, "openWorldHint": false }
+    },
+    {
+      "name": "reset_configuration",
+      "arguments": ["confirmationToken"],
+      "annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": false, "openWorldHint": false }
+    },
+    {
+      "name": "save_preferences",
+      "arguments": ["appTaskLane", "client", "orchestrator", "roles", "scope", "workspace"],
+      "annotations": { "readOnlyHint": false, "destructiveHint": false, "idempotentHint": false, "openWorldHint": false }
+    },
+    {
+      "name": "uninstall_client_adapter",
+      "arguments": ["confirmationToken"],
+      "annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": false, "openWorldHint": false }
+    },
+    {
+      "name": "validate_configuration",
+      "arguments": ["workspace"],
+      "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false }
+    }
+  ]
+}
