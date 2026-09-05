@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import {
@@ -20,7 +20,9 @@ afterEach(() => {
 });
 
 function workspace(): string {
-  const root = mkdtempSync(join(tmpdir(), "orrery-doctor-"));
+  // macOS exposes /var through /private/var. Use the canonical identity because the
+  // production renderer intentionally binds a profile to the workspace realpath.
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "orrery-doctor-")));
   roots.push(root);
   return root;
 }
